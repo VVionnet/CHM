@@ -230,6 +230,8 @@ void core::config_modules(pt::ptree &value, const pt::ptree &config, std::vector
     //loop over the list of requested modules
     // these are in the format "type":"ID"
     std::set<std::string> modules; //use a set to avoid duplicates (ie, user error!)
+
+
     for (auto &itr : value)
     {
         std::string module = itr.second.data();
@@ -239,7 +241,6 @@ void core::config_modules(pt::ptree &value, const pt::ptree &config, std::vector
         if (std::find(remove.begin(), remove.end(), module) == remove.end())
         {
             modules.insert(module);
-            //    LOG_DEBUG << "inserted module " << module;
         }
         else
         {
@@ -889,7 +890,7 @@ void core::config_output(pt::ptree &value)
             }
             catch(const pt::ptree_error &e)
             {
-                BOOST_THROW_EXCEPTION(forcing_error() << errstr_info("Missing latitude and/or longitude for " + out.name));
+                BOOST_THROW_EXCEPTION(forcing_error() << errstr_info("Output point " + out.name + " is missing latitude and/or longitude."));
             }
 
 
@@ -1770,6 +1771,14 @@ void core::_determine_module_dep()
             if(m1.first->ID == m2.first->ID )
                 continue;
 
+           if( std::find(m1.first->conflicts()->begin(),
+                   m1.first->conflicts()->end(),
+                   m2.first->ID) != m1.first->conflicts()->end())
+           {
+               BOOST_THROW_EXCEPTION(module_error() << errstr_info("Module " + m1.first->ID + " explicitly conflicts with " + m2.first->ID));
+           }
+
+
             auto itr = std::find_first_of (m1.first->provides()->begin(), m1.first->provides()->end(),
                                            m2.first->provides()->begin(), m2.first->provides()->end());
             if( itr != m1.first->provides()->end() )
@@ -2014,8 +2023,8 @@ void core::_determine_module_dep()
         file.close();
 
         //http://stackoverflow.com/questions/8195642/graphviz-defining-more-defaults
-        std::system("gvpr -c -f filter.gvpr -o modules.dot modules.dot.tmp");
-        std::system("dot -Tpdf modules.dot -o modules.pdf");
+        std::system("gvpr -c -f filter.gvpr -o modules.dot modules.dot.tmp > /dev/null 2>&1");
+        std::system("dot -Tpdf modules.dot -o modules.pdf > /dev/null 2>&1");
         std::remove("modules.dot.tmp");
         std::remove("filter.gvpr");
         std::remove("modules.dot");

@@ -102,12 +102,13 @@ public:
     module_base(std::string name = "",
 		parallel type = parallel::data,
 		config_file input_cfg = pt::basic_ptree<std::string,std::string>())
-      : ID(name), _parallel_type(type), cfg(input_cfg), IDnum(0)
+      :    ID(name), cfg(input_cfg), IDnum(0),_parallel_type(type)
     {
         _provides = boost::make_shared<std::vector<std::string> >();
         _depends = boost::make_shared<std::vector<std::string> >();
         _depends_from_met = boost::make_shared<std::vector<std::string> >();
         _optional = boost::make_shared<std::vector<std::string> >();
+        _conflicts = boost::make_shared<std::vector<std::string> >(); //modules that we explicitly cannot be run alongside. Use sparingly
         global_param = nullptr;
 
         //nothing
@@ -200,6 +201,23 @@ public:
     {
         return _depends;
     }
+
+    /**
+    * Modules we conflict with and absolutely cannot run alongside. Use sparingly.
+    */
+    void conflicts(std::string variable)
+    {
+        if(variable.find_first_of("\t ") != std::string::npos)
+            BOOST_THROW_EXCEPTION(module_error() << errstr_info ("Variable " + variable +" has a space. This is not allowed."));
+
+        _conflicts->push_back(variable);
+    }
+
+    boost::shared_ptr<std::vector<std::string> > conflicts()
+    {
+        return _conflicts;
+    }
+
 
     /**
      * List of the optional depends variables from other modules that this module depends upon
@@ -320,11 +338,13 @@ protected:
     boost::shared_ptr<std::vector<std::string> > _depends;
     boost::shared_ptr<std::vector<std::string> > _depends_from_met;
     boost::shared_ptr<std::vector<std::string> > _optional;
+    boost::shared_ptr<std::vector<std::string> > _conflicts;
 
 
 
     //lists the options that were found
     std::map<std::string,bool> _optional_found;
+
 
 };
 
